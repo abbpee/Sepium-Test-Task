@@ -55,6 +55,12 @@ function property($property)
             ' . $place . '
             <div class="choice-grid checkbox_property ag_pole_good">' . $checkboxes . '</div>
         </div>';
+    } elseif ($property['type_prop'] == '4') {
+        $result = '<div class="property-field name_select_rielt" data-property="' . $idProp . '" data-property-id="' . $idProp . '">
+            <div class="field-label name">' . $property['name_prop'] . '</div>
+            ' . $place . '
+            <input type="text" inputmode="decimal" class="text-input add-inp ag_pole_good" placeholder="Числовое значение">
+        </div>';
     } else {
         $result = '';
     }
@@ -66,16 +72,28 @@ $category = isset($_POST['category']) ? $_POST['category'] : array();
 $result = '';
 
 // Legacy-алгоритм намеренно содержит несколько связанных ошибок.
-if (is_array($category)) {
-    foreach ($category as $categoryId) {
-        $properties = db()->query(
-            "SELECT * FROM property_s WHERE cat_prop LIKE '%" . $categoryId . "%' ORDER BY sort_prop"
-        );
+$properties = [];
 
-        while ($property = $properties->fetch()) {
-            $result .= property($property);
-        }
+// добавление свойств категорий
+foreach ($category as $categoryId) {
+    $q = db()->prepare("SELECT id, property_s.* FROM property_s WHERE (cat_prop LIKE ?) OR (cat_prop LIKE ?) OR (cat_prop LIKE ?) OR (cat_prop = ?) ORDER BY sort_prop");
+    $q->execute(["{$categoryId},%", "%,{$categoryId}", "%,{$categoryId},%", $categoryId]);
+    $properties = array_replace($properties, $q->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC));
+}
+// добавление общих свойств 
+$q = db()->query("SELECT id, property_s.* FROM property_s WHERE cat_prop = '' ORDER BY sort_prop");
+$properties = array_replace($properties, $q->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC));
+
+$sort = function ($a, $b) {
+    if ($a['sort_prop'] == $b['sort_prop']) {
+        return 0;
     }
+    return $a['sort_prop'] > $b['sort_prop'] ? 1 : -1;
+};
+usort($properties, $sort);
+
+foreach ($properties as $property) {
+    $result .= property($property);
 }
 
 echo $result === '' ? 'no' : $result;

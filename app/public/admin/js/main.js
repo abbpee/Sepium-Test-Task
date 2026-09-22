@@ -17,8 +17,24 @@
 
         $('.name_select_rielt').each(function () {
             var propertyId = $(this).attr('data-property');
-            var value = $(this).find('input.ag_pole_good, select.ag_pole_good').first().val();
 
+            var checkboxes = $(this).find('div.ag_pole_good input[type="checkbox"]');
+            if (0 !== checkboxes.length) {
+                propertyMas[propertyId] = [];
+                checkboxes.each((i, cbx) => {
+                    if (cbx.checked) {
+                        propertyMas[propertyId].push(cbx.nextElementSibling.dataset.val);
+                    }
+                });
+                if (propertyMas[propertyId].length) {
+                    propertyMas[propertyId] = propertyMas[propertyId].join(':::');
+                }
+
+                return;
+            }
+
+
+            var value = $(this).find('input.ag_pole_good, select.ag_pole_good').first().val();
             if (value !== undefined && value !== '') {
                 propertyMas[propertyId] = value;
             }
